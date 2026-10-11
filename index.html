@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="승인 단계에서 금액과 사유를 입력해 반영하는 화면">
+<!--ethos-data:{"step":true}-->
+<title>승인 단계 입력</title>
+<style>
+  :root{
+    --primary:#1f6feb;
+    --accent:#0e9f6e;
+    --bg:#f4f6fb;
+    --card:#ffffff;
+    --text:#1b2333;
+    --muted:#667085;
+    --line:#e3e8f2;
+    --danger:#d92d20;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif}
+  .wrap{max-width:480px;margin:0 auto;padding:16px 14px 40px}
+  header{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
+  header h1{margin:0 0 6px;font-size:19px}
+  header p{margin:4px 0;color:var(--muted);font-size:14px;line-height:1.5}
+  .offline{margin-top:10px;background:#fff8e6;border:1px solid #f0d48a;color:#7a5b00;border-radius:10px;padding:10px 12px;font-size:13px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-top:12px}
+  .card h2{margin:0 0 4px;font-size:16px}
+  .sub{margin:0 0 12px;color:var(--muted);font-size:13px;line-height:1.5}
+  .status-box{background:#eef4ff;border:1px solid #c9dcff;border-radius:10px;padding:12px;min-height:48px;font-size:14px;line-height:1.6;white-space:pre-wrap}
+  .status-empty{color:var(--muted)}
+  label{display:block;font-size:14px;font-weight:700;margin:14px 0 6px}
+  label .req{color:var(--danger);font-weight:800}
+  input[type=number],textarea,select{width:100%;border:1px solid var(--line);border-radius:10px;padding:12px;font-size:15px;background:#fff;color:var(--text)}
+  input:focus,textarea:focus,select:focus{outline:2px solid var(--primary);border-color:var(--primary)}
+  textarea{min-height:110px;resize:vertical}
+  .hint{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.5}
+  .radio-row{display:flex;gap:8px}
+  .radio-row label{flex:1;margin:0;border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center;font-weight:700;cursor:pointer;background:#fff;min-height:48px;display:flex;align-items:center;justify-content:center}
+  .radio-row input{position:absolute;opacity:0;width:1px;height:1px}
+  .radio-row label:has(input:checked){border-color:var(--primary);background:#eef4ff;color:var(--primary)}
+  .radio-row label:has(input:focus-visible){outline:2px solid var(--primary)}
+  .msg{display:none;margin-top:12px;border-radius:10px;padding:11px 12px;font-size:14px;line-height:1.5}
+  .msg.err{display:block;background:#feeceb;border:1px solid #f5b8b3;color:#8a1f18}
+  .msg.ok{display:block;background:#e8f7ef;border:1px solid #a9dfc0;color:#0b5c36}
+  .btn{width:100%;margin-top:16px;min-height:52px;border:0;border-radius:12px;background:var(--primary);color:#fff;font-size:17px;font-weight:800;cursor:pointer}
+  .btn:disabled{background:#9dbcf5;cursor:not-allowed}
+  .btn.sub{background:var(--accent)}
+  .foot{margin-top:12px;color:var(--muted);font-size:12px;line-height:1.6}
+  .task-box{background:#f8fafc;border:1px dashed var(--line);border-radius:10px;padding:10px 12px;margin-top:10px;font-size:13px;line-height:1.6}
+  .extra-field{margin-top:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1 id="taskTitle">승인 단계 입력</h1>
+    <p id="taskDesc">금액과 사유, 처리 방향을 확인해 값을 반영해 주세요. 최종 승인·반려는 아래 에토스 단추로 결정됩니다.</p>
+    <div class="task-box" id="taskBox" hidden></div>
+    <div class="offline">미리보기 상태입니다. 에토스 워크플로에서 열면 실제 작업이 표시됩니다.</div>
+  </header>
+
+  <section class="card" aria-label="이전 단계 결과">
+    <h2>처리 상태</h2>
+    <p class="sub">이전 단계에서 넘어온 결과입니다.</p>
+    <div class="status-box" id="statusWrap"><span class="status-empty" id="statusEmpty">아직 전달된 이전 단계 결과가 없습니다.</span><span id="statusText" data-ethos-point="status" data-ethos-kind="output" data-ethos-from="input" data-ethos-label="처리 상태"></span></div>
+  </section>
+
+  <section class="card" aria-label="승인 입력">
+    <h2>입력 항목</h2>
+    <p class="sub">세 항목을 입력한 뒤 ‘값 보내기’를 눌러 주세요.</p>
+
+    <label for="amount">금액(원) <span class="req" aria-hidden="true">*</span></label>
+    <input id="amount" name="amount" type="number" inputmode="numeric" min="0" step="1" placeholder="예: 150000"
+      data-ethos-point="amount" data-ethos-kind="input" data-ethos-label="금액" data-ethos-type="number" data-ethos-required="true">
+    <div class="hint">0 이상 숫자만 입력해 주세요.</div>
+
+    <label for="reason">사유 <span class="req" aria-hidden="true">*</span></label>
+    <textarea id="reason" name="reason" placeholder="예: 거래처 추가 발주 건 승인 요청"
+      data-ethos-point="reason" data-ethos-kind="input" data-ethos-label="사유" data-ethos-type="textarea" data-ethos-required="true"></textarea>
+    <div class="hint">10자 이상 적어 주시면 검토가 빨라집니다.</div>
+
+    <label for="direction">처리 방향 <span class="req" aria-hidden="true">*</span></label>
+    <select id="direction" name="direction"
+      data-ethos-point="direction" data-ethos-kind="input" data-ethos-label="처리 방향" data-ethos-type="enum" data-ethos-options="일반|긴급" data-ethos-required="true">
+      <option value="">선택해 주세요</option>
+      <option value="일반">일반</option>
+      <option value="긴급">긴급</option>
+    </select>
+    <div class="hint">긴급은 담당자에게 우선 표시됩니다.</div>
+
+    <div class="extra-field" id="extraFields"></div>
+
+    <div class="msg" id="msg" role="status" aria-live="polite"></div>
+
+    <button type="button" class="btn" id="sendBtn"
+      data-ethos-point="send" data-ethos-kind="action" data-ethos-label="값 보내기">값 보내기</button>
+
+    <p class="foot">입력한 값은 워크플로로 전달되며, 최종 결정(승인·반려)은 에토스 화면 아래 단추에서 합니다.</p>
+  </section>
+</div>
+
+<script>
+window.ETHOS_STEP={v:1,app:"qa0109-approve",shell:"https://ethos.ai.kr https://www.ethos.ai.kr",parent:""};
+function ethosTask(){ return new Promise(function(res){ var S=ETHOS_STEP.shell.split(" "); if(window.parent===window||S[0].indexOf("__")===0){res({ok:false,offline:true});return;} var done=false; function on(e){ if(e.source!==window.parent||S.indexOf(e.origin)<0||!e.data||e.data.type!=="ethos.task.context") return; done=true; ETHOS_STEP.parent=e.origin; window.removeEventListener("message",on); res({ok:true,kind:e.data.kind,task:e.data.task||null,input:(e.data.input&&e.data.input.text)||"",run:e.data.run||{},outputs:e.data.outputs||[]}); } window.addEventListener("message",on); S.forEach(function(o){ try{window.parent.postMessage({type:"ethos.task.ready",v:1,app:ETHOS_STEP.app},o);}catch(x){} }); setTimeout(function(){ if(!done){window.removeEventListener("message",on); res({ok:false,offline:true});} },4000); }); }
+function ethosTaskSubmit(data){ if(window.parent===window||!ETHOS_STEP.parent) return {ok:false,offline:true}; window.parent.postMessage({type:"ethos.task.submit",v:1,data:data||{}},ETHOS_STEP.parent); return {ok:true,pending:true}; }
+function ethosPoints(){ return Array.prototype.map.call(document.querySelectorAll("[data-ethos-point]"),function(el){ var d=el.dataset,t=el.tagName.toLowerCase(); return {el:el,key:d.ethosPoint,kind:d.ethosKind||(/^(input|select|textarea)$/.test(t)?"input":/^(button|a)$/.test(t)?"action":"output"),label:d.ethosLabel||el.getAttribute("aria-label")||el.placeholder||d.ethosPoint,type:d.ethosType||(t==="select"?"enum":t==="textarea"?"textarea":({number:"number",date:"date",checkbox:"bool"})[el.type]||"text"),options:d.ethosOptions?d.ethosOptions.split("|"):undefined,required:(d.ethosRequired!=null||!!el.required)||undefined,from:d.ethosFrom||undefined}; }); }
+function ethosValues(){ var o={}; ethosPoints().forEach(function(p){ if(p.kind!=="input") return; var el=p.el; o[p.key]=el.type==="checkbox"?!!el.checked:el.type==="number"?(el.value===""?"":Number(el.value)):el.value; }); return o; }
+function ethosBind(t){ var outs=(t&&t.outputs)||[]; ethosPoints().forEach(function(p){ if(p.kind==="output"&&t&&t.ok){ var f=p.from||"input",o=outs.filter(function(x){return x.name===f;})[0]; p.el.textContent=f==="input"?(t.input||""):(o?o.text:""); } if(p.kind==="action"&&!p.el.__ethosAct){ p.el.__ethosAct=1; p.el.addEventListener("click",function(e){ e.preventDefault(); ethosTaskSubmit(ethosValues()); }); } }); }
+window.addEventListener("message",function(e){ var S=ETHOS_STEP.shell.split(" "); if(e.source!==window.parent||S.indexOf(e.origin)<0||!e.data||e.data.type!=="ethos.pick.start") return; var pt=function(p){ return {key:p.key,kind:p.kind,label:p.label,type:p.type,options:p.options,required:p.required,from:p.from}; },ps=ethosPoints(); window.parent.postMessage({type:"ethos.pick.points",v:1,points:ps.map(pt)},e.origin); ps.forEach(function(p){ p.el.style.outline="2px dashed #1f6feb"; if(p.el.__ethosPick) return; p.el.__ethosPick=1; p.el.addEventListener("click",function(ev){ ev.preventDefault(); ev.stopPropagation(); window.parent.postMessage({type:"ethos.pick.selected",v:1,point:pt(p)},e.origin); },true); }); });
+
+// ---- 화면固有 동작 (접점 선언은 위 HTML에 고정, 아래는 검증·표시만 담당) ----
+var amountEl = document.getElementById("amount");
+var reasonEl = document.getElementById("reason");
+var directionEl = document.getElementById("direction");
+var sendBtn = document.getElementById("sendBtn");
+var msgEl = document.getElementById("msg");
+var statusText = document.getElementById("statusText");
+var statusEmpty = document.getElementById("statusEmpty");
+var taskTitle = document.getElementById("taskTitle");
+var taskDesc = document.getElementById("taskDesc");
+var taskBox = document.getElementById("taskBox");
+var extraBox = document.getElementById("extraFields");
+var sending = false;
+
+function showMsg(kind, text){
+  msgEl.className = "msg " + kind;
+  msgEl.textContent = text;
+}
+function clearMsg(){ msgEl.className = "msg"; msgEl.textContent = ""; }
+
+function refreshStatusEmpty(){
+  var has = (statusText.textContent || "").trim().length > 0;
+  statusEmpty.style.display = has ? "none" : "inline";
+}
+
+function validate(){
+  var amt = amountEl.value.trim();
+  if(!amt){ return "금액을 입력해 주세요."; }
+  var n = Number(amt);
+  if(!isFinite(n) || amt === "" || n < 0){ return "금액은 0 이상 숫자로 입력해 주세요."; }
+  var reason = reasonEl.value.trim();
+  if(!reason){ return "사유를 입력해 주세요."; }
+  if(reason.length < 2){ return "사유를 2자 이상 입력해 주세요."; }
+  if(!directionEl.value){ return "처리 방향(일반·긴급)을 선택해 주세요."; }
+  return "";
+}
+
+// 미리보기용 예시값 (에토스 밖에서 열 때만)
+function fillOfflineSample(){
+  statusText.textContent = "예시: 이전 단계 요청 150,000원 접수됨";
+  refreshStatusEmpty();
+}
+
+function buildExtraFields(fields){
+  if(!fields || !fields.length) return;
+  var known = {amount:1, reason:1, direction:1};
+  fields.forEach(function(f){
+    if(!f || !f.key || known[f.key]) return;
+    var wrap = document.createElement("div");
+    var lab = document.createElement("label");
+    lab.textContent = (f.label || f.key);
+    lab.setAttribute("for", "extra_" + f.key);
+    wrap.appendChild(lab);
+    var input;
+    if(f.type === "textarea"){
+      input = document.createElement("textarea");
+      input.placeholder = f.label || f.key;
+    } else if(f.type === "enum" && f.options && f.options.length){
+      input = document.createElement("select");
+      var o0 = document.createElement("option");
+      o0.value = "";
+      o0.textContent = "선택해 주세요";
+      input.appendChild(o0);
+      f.options.forEach(function(op){
+        var o = document.createElement("option");
+        o.value = op;
+        o.textContent = op;
+        input.appendChild(o);
+      });
+    } else if(f.type === "number"){
+      input = document.createElement("input");
+      input.type = "number";
+      input.inputMode = "numeric";
+    } else if(f.type === "date"){
+      input = document.createElement("input");
+      input.type = "date";
+    } else {
+      input = document.createElement("input");
+      input.type = "text";
+    }
+    input.id = "extra_" + f.key;
+    input.setAttribute("data-ethos-point", f.key);
+    input.setAttribute("data-ethos-kind", "input");
+    wrap.appendChild(input);
+    extraBox.appendChild(wrap);
+  });
+}
+
+sendBtn.addEventListener("click", function(e){
+  e.preventDefault();
+  if(sending) return;
+  clearMsg();
+  var err = validate();
+  if(err){ showMsg("err", err); return; }
+  sending = true;
+  sendBtn.disabled = true;
+  sendBtn.textContent = "전달 중…";
+  var data = ethosValues();
+  var r = ethosTaskSubmit(data);
+  if(r && r.offline){
+    // 미리보기에서는 에토스로 보내지 않고 화면 확인만 제공
+    showMsg("ok", "미리보기라 에토스로 보내지 않았습니다. 금액 " + Number(amountEl.value).toLocaleString("ko-KR") + "원 / " + directionEl.value + " (으)로 입력됐는지 확인해 주세요.");
+    sending = false;
+    sendBtn.disabled = false;
+    sendBtn.textContent = "값 보내기";
+    return;
+  }
+  showMsg("ok", "값을 전달했습니다. 아래 에토스 단추에서 최종 승인·반려를 확정해 주세요.");
+  setTimeout(function(){
+    sending = false;
+    sendBtn.disabled = false;
+    sendBtn.textContent = "값 보내기";
+  }, 1500);
+});
+
+[amountEl, reasonEl, directionEl].forEach(function(el){
+  el.addEventListener("input", clearMsg);
+  el.addEventListener("change", clearMsg);
+});
+
+sendBtn.__ethosAct = 1; // 아래 검증 핸들러에서 한 번만 전송 (자동 중복 전송 방지)
+ethosTask().then(function(t){
+  ethosBind(t);
+  refreshStatusEmpty();
+  if(!t.ok){
+    fillOfflineSample();
+    return;
+  }
+  if(t.task && t.task.title){ taskTitle.textContent = t.task.title; }
+  if(t.task && t.task.instructions){ taskDesc.textContent = t.task.instructions; }
+  if(t.task && t.task.fields){ buildExtraFields(t.task.fields); }
+  if(t.kind === "result"){
+    taskBox.hidden = false;
+    var out = (t.outputs || []).map(function(o){ return (o.name || "") + ": " + (o.text || ""); }).join("\n");
+    taskBox.textContent = out || "결과가 전달되었습니다.";
+  } else if(t.kind === "start"){
+    taskBox.hidden = false;
+    taskBox.textContent = "이 화면에서 새 요청을 시작합니다. 세 항목을 입력해 주세요.";
+  }
+  refreshStatusEmpty();
+});
+refreshStatusEmpty();
+</script>
+
+<!--ethos-badge--><div aria-hidden="true" style="height:30px;flex:0 0 auto;width:100%"></div><div style="position:fixed;left:0;right:0;bottom:0;z-index:2147483000;text-align:center;padding:6px 8px;font:12px/1.4 -apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;color:#9aa1a9;background:rgba(255,255,255,.86);backdrop-filter:blur(2px)">이 페이지는 <a href="https://ethos.ai.kr" target="_blank" rel="noopener" style="color:#8a919b;text-decoration:underline">에토스AI 코드</a>로 만들어졌습니다</div>
+</body>
+</html>
